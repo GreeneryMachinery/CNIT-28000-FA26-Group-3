@@ -8,35 +8,9 @@ Version Purpose: This program is designed to create macros for automating repeti
 
 
 def main():
-    """
-    Main function to run the MacroMaker program.
-    This function initializes the application, sets up the user interface, and handles user interactions.
-    """
-    # Initialize the application
-    print("Welcome to MacroMaker V1.0")
-    
-    # Set up user interface (placeholder for actual UI code)
-    print("Setting up user interface...")
-    
-    # Handle user interactions (placeholder for actual interaction code)
-    print("Ready to record your actions. Press 'Start' to begin recording.")
-    
-    # Placeholder for recording logic
-    # ...
-    
-    print("Recording complete. Generating macro script...")
-    
-    # Placeholder for script generation logic
-    # ...
-    
-    print("Macro script generated successfully. You can now execute it to replicate your actions.")
+    # Placeholder for the main functionality of the MacroMaker program
+    print("Hello World!")
+    # Additional code for recording actions and generating scripts will be added here.
 
 
-
-
-
-
-
-
-
-
+main()
