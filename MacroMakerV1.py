@@ -6,10 +6,23 @@ Current Version: 1.0
 Version Purpose: This program is designed to create macros for automating repetitive tasks in various applications. It allows users to record their actions and generate a script that can be executed later to replicate those actions.
 """
 
+import keyboard
+
+def testHotkey():
+    print("Test Macro Activated")
+
+keyboard.add_hotkey("shift+p", testHotkey)
+
+print("Listening for Shift + P.")
+keyboard.wait()
+
+
+
 
 def main():
     # Placeholder for the main functionality of the MacroMaker program
-    print("Hello World!")
+    testHotkey()
+    print("Test")
     # Additional code for recording actions and generating scripts will be added here.
 
 
