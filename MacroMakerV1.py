@@ -50,6 +50,7 @@ def main():
     #testHotkey()
     testMacroMaking()
     testSecondMacro()
+    jsonTest()
     keyboard.wait()
     # Additional code for recording actions and generating scripts will be added here.
 
