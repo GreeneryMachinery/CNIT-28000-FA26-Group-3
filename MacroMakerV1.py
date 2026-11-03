@@ -44,8 +44,7 @@ def jsonTest():
 
 
 
-
-def main():
+def initialTests():
     # Placeholder for the main functionality of the MacroMaker program
     #testHotkey()
     testMacroMaking()
@@ -55,4 +54,10 @@ def main():
     # Additional code for recording actions and generating scripts will be added here.
 
 
+
+def main():
+    #Call the initial tests function.
+    initialTests()
+
+#Call main.
 main()
