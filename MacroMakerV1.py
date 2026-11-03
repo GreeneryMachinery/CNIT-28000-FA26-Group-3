@@ -8,21 +8,39 @@ Version Purpose: This program is designed to create macros for automating repeti
 
 import keyboard
 
+
+#Test code to see if keyboard library will work.
 def testHotkey():
     print("Test Macro Activated")
 
-keyboard.add_hotkey("shift+p", testHotkey)
+def testHotkey2():
+    print("2nd Test Macro Activated")
 
-print("Listening for Shift + P.")
-keyboard.wait()
+#keyboard.add_hotkey("shift+p", testHotkey)
+
+#print("Listening for Shift + P.")
+#keyboard.wait()
 
 
 
+# Attempt to make a function that works with user inputs.
+def testFunction(desiredHotkeys):
+    keyboard.add_hotkey(desiredHotkeys, testHotkey)
+
+
+def testMacroMaking():
+    desiredHotkeys = input("Please enter the keys you would like for your macro with a + between each one (e.g. shift+x): ")
+    testFunction(desiredHotkeys)
+
+def testSecondMacro():
+    keyboard.add_hotkey("shift+z", testHotkey2)
 
 def main():
     # Placeholder for the main functionality of the MacroMaker program
-    testHotkey()
-    print("Test")
+    #testHotkey()
+    testMacroMaking()
+    testSecondMacro()
+    keyboard.wait()
     # Additional code for recording actions and generating scripts will be added here.
 
 
