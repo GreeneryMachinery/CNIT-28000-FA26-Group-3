@@ -9,4 +9,5 @@ Step 1. Install Python
 Step 2. Install the Keyboard library
         Open a powershell window with administrator permissions, and type "pip3 install keyboard" without the quotations.
 
-Step 3. Launch the MacroMaker python program, it will begin listening for keyboard inputs.
+Step 3. Launch the MacroMaker python program
+        Open the MacroMaker.py file. The program will begin to run.
