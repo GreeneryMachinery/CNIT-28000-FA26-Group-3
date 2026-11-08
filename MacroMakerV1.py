@@ -36,11 +36,21 @@ def testSecondMacro():
 
 #JSON Test code. WIP (Don't have windows laptop on me)
 def jsonTest():
-    jsonTestStr = '{"hotkeys": "shift+g+h", "filePath": "C:\\Windows\\System32"}'
-    testData = json.loads(jsonTestStr)
+    jsonTestStr = {"hotkeys": "shift+g+h", "filePath": "C:\\Windows\\System32"}
 
-    print(testData["hotkeys"])
-    print(testData["filePath"])
+    with open("config.json", "w") as file:
+        json.dump(jsonTestStr, file, indent=4)
+
+    jsonTestStr2 = {"hotkeys": "shift+ctrl+4", "filePath": "C:\\Windows\\Program Files"}
+
+    with open("config.json", "w") as file:
+        json.dump(jsonTestStr2, file, indent=4)
+
+    with open("config.json", "r") as file:
+        dataStr = json.load(file)
+        desiredHotkeyTest = dataStr["hotkeys"]
+
+    keyboard.add_hotkey(desiredHotkeyTest, testHotkey2)
 
 
 
