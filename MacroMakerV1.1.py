@@ -9,7 +9,18 @@ Version Purpose: Testing .csv as an alternative to .JSON as the data format may 
 import keyboard
 import csv
 import os
+import time
 
+"""
+AI Disclosure
+ChatGPT V6.0 Sol
+How would I modify the existing macro check to normalize key order (e.g. prevent users from inputting shift+z and z+shift)
+Goal of code is to cover every scenario of duplicate macro creation. Initial check was hand-written but didn't account for the same keys in different orders.
+AI was used to create a more elegant solution (AI normalizing function is only one line)
+"""
+def normalizeHotkeys(hotkeys):
+    return "+".join(sorted(key.strip().lower() for key in hotkeys.split("+")))
+#END OF AI GENERATED CODE SEGMENT
 
 #Function to launch a file.
 def activateMacro(filePath):
@@ -34,24 +45,47 @@ def initializeMacros():
 #Function to add a macro to the config.csv file.
 def addMacro(hotkeys, filePath):
 
+    #Call normalization function.
+    hotkeysNormalized = normalizeHotkeys(hotkeys)
+    print(hotkeysNormalized)
+
     #Code to check for duplicate macro hotkeys, and return a value of False if a match is found.
     with open("config.csv", "r", newline="") as file:
         reader = csv.reader(file)
         for row in reader:
-            if hotkeys.strip().lower() == row[0].strip().lower():
+            if hotkeysNormalized == normalizeHotkeys(row[0]):
                 print("Error: Macro with specified hotkeys already exists!\n\nPlease select a new set of hotkeys.")
                 return False
 
     #Code to write the macro to the config.csv file if no duplicate is found. Returns True if macro is successfully created.
     with open("config.csv", "a", newline="") as file:
         writer = csv.writer(file)
-        macroToAdd = [hotkeys, filePath]
+        macroToAdd = [hotkeysNormalized, filePath]
         writer.writerow(macroToAdd)
         print("Macro added successfully!")
         return True
-          
-
-
+# CODE NEEDS WORK< NOT WORKING ATM
+#Function to record keystrokes for hotkey entry rather than requiring the user to type in the keys they want to use.   
+def autoEnterHotkeys():
+    repeatEntry = True
+    while repeatEntry == True:
+        #Prints the request to press hotkeys,
+        print("Please press your desired hotkeys...")
+        #Pause for 1 second so user can release any keys used in the menu.
+        time.sleep(1)
+        #User entered hotkeys are converted to a string using the read_hotkey function.
+        userEnteredKeys = keyboard.read_hotkey(suppress=True)
+        normalizedEnteredKeys = normalizeHotkeys(userEnteredKeys)
+        #Print shows the hotkeys that were read.
+        print(f"The hotkeys entered are {normalizedEnteredKeys}")
+        isCorrect = input("Are these the keys you wish to use? y/n: ")
+        if isCorrect == "y" or isCorrect == "Y":
+            repeatEntry = False
+        elif isCorrect == "n" or isCorrect == "N":
+            repeatEntry = True
+        else:
+            print("Error: Please select a valid option!")
+    return normalizedEnteredKeys
 
 
 """
@@ -87,7 +121,8 @@ def main():
             print("\n===Create new macro===")
             print("Hotkey expected format (without quotes) \"shift+z\"")
             print("FilePath expected format (without quotes) \"C:\\Windows\\System32\\\"")
-            hotkeys = input("Please enter your desired hotkeys: ")
+            hotkeys = autoEnterHotkeys()
+            time.sleep(0.5)
             filePath = input("Please enter your desired filepath: ")
             successfulCreation = addMacro(hotkeys, filePath)
             if successfulCreation == True:
@@ -97,6 +132,7 @@ def main():
         elif userSelection == "2":
             initializeMacros()
             print("Listening for macros...")
+            #keyboard.wait()
             reinvokeMenu = input("To invoke the menu, type (without quotes) \"menu\" and press the Enter key.\n")
             if reinvokeMenu == "menu":
                 userSelection = "0"
