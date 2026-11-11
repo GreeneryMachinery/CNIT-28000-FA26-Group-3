@@ -1,8 +1,8 @@
 """
-Authors: Andrew Connolly and Trey Green
+Authors: Andrew Connolly and Trey Greene
 Program Name: MacroMakerV1.py
-Date Initialized: 2024-06-10
-Current Version: 1.1
+Date Initialized: Nov 8, 2026
+Current Version: 0.2
 Version Purpose: Testing .csv as an alternative to .JSON as the data format may work better for our situation.
 """
 
@@ -10,6 +10,24 @@ import keyboard
 import csv
 import os
 import time
+
+#Function to display all macros (WILL NOT BE NEEDED/WILL NEED MAJOR CHANGES WHEN GUI IS FINISHED)
+def readMacros():
+    print("\nNum. ==Hotkeys== \t| ==FilePaths==")
+    with open("config.csv", "r", newline = "") as file:
+        reader = csv.reader(file)
+        rowNum = 1
+        for row in reader:
+            hotkeysNormalized = normalizeHotkeys(row[0])
+            filePath = row[1].strip()
+            print(f"{rowNum}.   {hotkeysNormalized} \t| {filePath}")
+            rowNum += 1
+
+#Will need to consider updating to SQLite to perform CRUD operations efficiently.
+def modifyMacro():
+    readMacros()
+    userSelection = int(input("Please enter the number for the macro you wish to modify: "))
+    rowCounter = 0
 
 """
 AI Disclosure
@@ -22,6 +40,7 @@ def normalizeHotkeys(hotkeys):
     return "+".join(sorted(key.strip().lower() for key in hotkeys.split("+")))
 #END OF AI GENERATED CODE SEGMENT
 
+
 #Function to launch a file.
 def activateMacro(filePath):
     #print(filePath)
@@ -31,7 +50,7 @@ def activateMacro(filePath):
 #Function to initialize the macros found in the CSV config file. This function will be called on startup always.
 def initializeMacros():
     #Open the config.csv file.
-    with open("config.csv", "r", newline="") as file:
+    with open("config.csv", "r", newline = "") as file:
         #reader iterates through the CSV file row by row.
         reader = csv.reader(file)
         for row in reader:
@@ -43,7 +62,7 @@ def initializeMacros():
 
 
 #Function to add a macro to the config.csv file.
-def addMacro(hotkeys, filePath):
+def createMacro(hotkeys, filePath):
 
     #Call normalization function.
     hotkeysNormalized = normalizeHotkeys(hotkeys)
@@ -64,7 +83,8 @@ def addMacro(hotkeys, filePath):
         writer.writerow(macroToAdd)
         print("Macro added successfully!")
         return True
-# CODE NEEDS WORK< NOT WORKING ATM
+
+    
 #Function to record keystrokes for hotkey entry rather than requiring the user to type in the keys they want to use.   
 def autoEnterHotkeys():
     repeatEntry = True
@@ -78,6 +98,7 @@ def autoEnterHotkeys():
         normalizedEnteredKeys = normalizeHotkeys(userEnteredKeys)
         #Print shows the hotkeys that were read.
         print(f"The hotkeys entered are {normalizedEnteredKeys}")
+        #CODE BELOW SOMETIMES DOES NOT RECOGNIZE THE SHIFT KEY WHEN CREATING A MACRO, MAY NEED ADVANCED TESTING TO DETERMINE ROOT CAUSE
         isCorrect = input("Are these the keys you wish to use? y/n: ")
         if isCorrect == "y" or isCorrect == "Y":
             repeatEntry = False
@@ -110,12 +131,15 @@ def initialTests():
 
 def main():
 
-    #Temporary python-based menu.
+    #Temporary command line menu for testing purposes, will be replaced with a GUI.
     userSelection = "0"
     while userSelection == "0":
         print("\nPlease select an option from the menu below.")
         print("1 - Create new macro.")
-        print("2 - Activate program.")
+        print("2 - View existing macros.")
+        print("3 - Modify existing macro.")
+        print("4 - Delete existing macro.")
+        print("5 - Activate MacroMaker.")
         userSelection = input("Please enter your selection: ")
         if userSelection == "1":
             print("\n===Create new macro===")
@@ -124,12 +148,15 @@ def main():
             hotkeys = autoEnterHotkeys()
             time.sleep(0.5)
             filePath = input("Please enter your desired filepath: ")
-            successfulCreation = addMacro(hotkeys, filePath)
+            successfulCreation = createMacro(hotkeys, filePath)
             if successfulCreation == True:
                 userSelection = "0"
             elif successfulCreation == False:
                 userSelection = "1"
         elif userSelection == "2":
+            readMacros()
+            userSelection = "0"
+        elif userSelection == "5":
             initializeMacros()
             print("Listening for macros...")
             #keyboard.wait()
@@ -138,7 +165,7 @@ def main():
                 userSelection = "0"
             else:
                 print("Error: Unknown Request\nPlease type \"menu\" to return to menu.")
-                userSelection = "2"
+                userSelection = "3"
         else:
             print("Error: Unknown Request")
             userSelection = "0"
