@@ -6,16 +6,16 @@ Current Version: 0.4
 Version Purpose: To begin integrating a TKInter GUI.
 """
 
-
 #Import required libraries.
 import keyboard
 import sqlite3
 import os
 import time
+import tkinter as tk
+from tkinter import ttk, messagebox, simpledialog
 
 #Dictionary of currently initialized macros.
 initializedMacroDictionary = {}
-
 
 #Function to initialize the database if one hasn't been created. Does nothing if DB exists already.
 def initializeDB():
@@ -106,7 +106,9 @@ AI was used to create a more elegant solution (AI normalizing function is only o
 """
 def normalizeHotkeys(hotkeys):
     return "+".join(sorted(key.strip().lower() for key in hotkeys.split("+")))
-#END OF AI GENERATED CODE SEGMENT
+"""
+END OF AI ASSISTED CODE SECTION
+"""
 
 #Function that creates a new macro in the database.
 def createMacro(hotkeys, filePath):
@@ -271,13 +273,178 @@ def tempTerminalMenu():
             else:
                 print("Error: Unknown Request")
                 userSelection = "0"
-    
+
+"""
+AI Disclosure
+ChatGPT V6.0
+Assistance was used to develop a simple Tkinter GUI to replace the
+temporary terminal menu (tempTerminalMenu).
+
+The GUI follows the project's wireframe and connects the existing
+macro creation, editing, deletion, and toggle functions to graphical
+buttons and a macro display table.
+
+AI was used to assist with the Tkinter layout and basic GUI functionality.
+"""
+def runGUI():
+    #Create the main window.
+    window = tk.Tk()
+    window.title("Macro Maker")
+    window.geometry("850x450")
+    window.minsize(750, 350)
+
+    #Create the title.
+    title = tk.Label(window,text="Macro Maker",font=("Arial", 20, "bold"))
+    title.pack(fill="x")
+
+    #Create the top buttons.
+    buttonFrame = tk.Frame(window)
+    buttonFrame.pack(fill="x")
+
+    #Create the macro table.
+    columns = ("icon", "name", "hotkeys", "filePath", "status")
+    macroTable = ttk.Treeview(window,columns=columns,show="headings")
+
+    #Set the table headings.
+    macroTable.heading("icon", text="Program Icon")
+    macroTable.heading("name", text="Name")
+    macroTable.heading("hotkeys", text="Keyboard Shortcut")
+    macroTable.heading("filePath", text="Program / File / URL")
+    macroTable.heading("status", text="Status")
+
+    #Set the table column sizes.
+    macroTable.column("icon", width=55, anchor="center")
+    macroTable.column("name", width=110)
+    macroTable.column("hotkeys", width=145)
+    macroTable.column("filePath", width=350)
+    macroTable.column("status", width=65, anchor="center")
+
+    macroTable.pack(fill="both", expand=True)
+
+    #Function to load macros from the database.
+    def refreshMacros():
+        #Clear the table.
+        for item in macroTable.get_children():
+            macroTable.delete(item)
+        #Retrieve macros from the database.
+        with sqlite3.connect("macroStorage.db") as connection:
+            macros = connection.execute(
+                "SELECT macroID, hotkeys, filePath, isEnabled FROM macroStorage"
+            ).fetchall()
+        #Insert each macro into the table.
+        for macroID, hotkeys, filePath, isEnabled in macros:
+            #Get the name from the file path.
+            macroName = os.path.basename(filePath.rstrip("\\/"))
+            if macroName == "":
+                macroName = filePath
+            #Display a checked or unchecked status.
+            if isEnabled == 1:
+                status = "☑"
+            else:
+                status = "☐"
+            macroTable.insert("", "end", iid=macroID, values=("▶", macroName, hotkeys, filePath, status))
+
+    #Function to add a macro.
+    def addMacro():
+        hotkeys = simpledialog.askstring("Add Macro", "Enter your keyboard shortcut:")
+        if hotkeys == None:
+            return
+        filePath = simpledialog.askstring("Add Macro", "Enter the program, file, folder, or URL:")
+        if filePath == None:
+            return
+        #Check that the target exists or is a URL.
+        if not (os.path.exists(filePath) or filePath.startswith(("http://", "https://"))):
+            messagebox.showerror("Error", "Invalid file path or URL.")
+            return
+        #Create the macro using the existing function.
+        successful = createMacro(hotkeys, filePath)
+        if successful == True:
+            refreshMacros()
+
+    #Function to edit a macro.
+    def editMacro():
+        selected = macroTable.selection()
+        if not selected:
+            messagebox.showerror("Error", "Please select a macro first.")
+            return
+        macroID = int(selected[0])
+        #Get the current macro information.
+        with sqlite3.connect("macroStorage.db") as connection:
+            macro = connection.execute("SELECT hotkeys, filePath FROM macroStorage WHERE macroID = ?", (macroID,)).fetchone()
+        if macro == None:
+            messagebox.showerror("Error", "Macro could not be found.")
+            refreshMacros()
+            return
+        #Ask for the updated information.
+        hotkeys = simpledialog.askstring("Edit Macro", "Enter the new keyboard shortcut:", initialvalue=macro[0])
+        if hotkeys == None:
+            return
+        filePath = simpledialog.askstring("Edit Macro", "Enter the new program, file, folder, or URL:", initialvalue=macro[1])
+        if filePath == None:
+            return
+        #Check that the target exists or is a URL.
+        if not (os.path.exists(filePath) or filePath.startswith(("http://", "https://"))):
+            messagebox.showerror("Error", "Invalid file path or URL.")
+            return
+        #Update the macro using the existing function.
+        successful = updateMacro(macroID, hotkeys, filePath)
+        if successful == True:
+            refreshMacros()
+
+    #Function to delete a macro.
+    def deleteMacroGUI():
+        selected = macroTable.selection()
+        if not selected:
+            messagebox.showerror("Error", "Please select a macro first.")
+            return
+        macroID = int(selected[0])
+        confirm = messagebox.askyesno("Delete Macro", "Are you sure you want to delete this macro?")
+        if confirm:
+            deleteMacro(macroID)
+            refreshMacros()
+
+    #Function to toggle a macro's status.
+    def toggleMacroGUI(event):
+        selected = macroTable.identify_row(event.y)
+        column = macroTable.identify_column(event.x)
+        #Only toggle when the status column is clicked.
+        if selected and column == "#5":
+            macroID = int(selected)
+            toggleMacro(macroID)
+            refreshMacros()
+
+    #Function for the Settings button.
+    def settings():
+        messagebox.showinfo("Settings", "Macro Maker must remain running for global hotkeys to work.\n\n", "Database: " + os.path.abspath("macroStorage.db"))
+
+    #Connect the status column to the toggle function.
+    macroTable.bind("<ButtonRelease-1>", toggleMacroGUI)
+
+    #Create the top buttons.
+    tk.Button(buttonFrame,text="Add Macro",command=addMacro).pack(side="left", expand=True, fill="x")
+    tk.Button(buttonFrame,text="Edit Macro",command=editMacro).pack(side="left", expand=True, fill="x")
+    tk.Button(buttonFrame,text="Delete Macro",command=deleteMacroGUI).pack(side="left", expand=True, fill="x")
+
+    #Create the bottom Settings button.
+    bottomFrame = tk.Frame(window)
+    bottomFrame.pack(fill="x")
+    tk.Button(bottomFrame,text="Settings",command=settings).pack(side="right")
+
+    #Load existing macros.
+    refreshMacros()
+    #Keep the window open.
+    window.mainloop()
+"""
+END OF AI ASSISTED CODE SECTION
+"""
+
 #Main function.
 def main():
 
     initializeDB()
     initializeMacrosOnStartup()
-    tempTerminalMenu()
+    # tempTerminalMenu()
+    runGUI()
 
 #Call main.
 main()
