@@ -211,68 +211,6 @@ def autoEnterHotkeys():
             print("Error: Please select a valid option!")
     return normalizedEnteredKeys
 
-def tempTerminalMenu():
-    #Temporary command line menu for testing purposes, will be replaced with a GUI.
-        userSelection = "0"
-        while userSelection == "0":
-            print("\nPlease select an option from the menu below.")
-            print("1 - Create new macro.")
-            print("2 - Toggle Macro.")
-            print("3 - Modify existing macro.")
-            print("4 - Delete existing macro.")
-            print("5 - Activate MacroMaker.")
-            userSelection = input("Please enter your selection: ")
-            if userSelection == "1":
-                print("\n===Create new macro===")
-                hotkeysCreate = autoEnterHotkeys()
-                print("FilePath expected format (without quotes) \"C:\\Windows\\System32\\\"")
-                time.sleep(0.5)
-                filePathCreate = input("Please enter your desired filepath: ")
-                successfulCreation = createMacro(hotkeysCreate, filePathCreate)
-                if successfulCreation == True:
-                    userSelection = "0"
-                elif successfulCreation == False:
-                    userSelection = "1"
-            elif userSelection == "2":
-                macroID = int(input("Please enter the ID of the macro you wish to toggle: "))
-                toggleMacro(macroID)
-                userSelection = "0"
-            elif userSelection == "3":
-                print("\n===Modify a macro===")
-                macroIDModify = int(input("Please enter the macroID if the macro you wish to modify: "))
-                hotkeysModify = autoEnterHotkeys()
-                print("FilePath expected format (without quotes) \"C:\\Windows\\System32\\\"")
-                filePathModify = input("Please enter your desired filepath: ")
-                #Check if the entered filepath exists.
-                if not os.path.exists(filePathModify):
-                    print("Error: Filepath does not exist. Please enter a valid filepath.")
-                    return False
-                successfulModification = updateMacro(macroIDModify, hotkeysModify, filePathModify)
-                if successfulModification == True:
-                    userSelection = "0"
-                elif successfulModification == False:
-                    userSelection = "3"
-            elif userSelection == "4":
-                print("\n===Delete a macro===")
-                macroIDDelete = int(input("Please enter the macroID if the macro you wish to Delete: "))
-                confirmDelete = input(f"Are you sure you want to delete macro {macroIDDelete}? If so type \"delete\" (without quotations): ")
-                if confirmDelete == "delete":
-                    deleteMacro(macroIDDelete)
-                else:
-                    print("Confirmation unsuccessful, please try again.")
-                userSelection = "0"
-            elif userSelection == "5":
-                print("Listening for macros...")
-                #keyboard.wait()
-                reinvokeMenu = input("To invoke the menu, type (without quotes) \"menu\" and press the Enter key.\n")
-                if reinvokeMenu == "menu":
-                    userSelection = "0"
-                else:
-                    print("Error: Unknown Request\nPlease type \"menu\" to return to menu.")
-                    userSelection = "5"
-            else:
-                print("Error: Unknown Request")
-                userSelection = "0"
 
 """
 AI Disclosure
@@ -443,7 +381,6 @@ def main():
 
     initializeDB()
     initializeMacrosOnStartup()
-    # tempTerminalMenu()
     runGUI()
 
 #Call main.
