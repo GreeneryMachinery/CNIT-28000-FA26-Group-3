@@ -13,7 +13,6 @@ import sqlite3
 import os
 import time
 
-
 #Dictionary of currently initialized macros.
 initializedMacroDictionary = {}
 
@@ -29,7 +28,6 @@ def initializeDB():
             filePath TEXT NOT NULL,
             isEnabled INTEGER NOT NULL DEFAULT 1)""")
 
-
 #Function to initialize macros on startup of program. ***WARNING*** DO NOT USE TO INITIALIZE A MACRO OUTSIDE OF STARTUP, IT WILL CAUSE ISSUES
 def initializeMacrosOnStartup():
     #Open a connection to the database.
@@ -39,7 +37,6 @@ def initializeMacrosOnStartup():
         #For loop iterates through the tuple of tuples and initialized a macro with hotkeys being the required keystrokes and filepath being the args for the executeMacro function.
         for macroID, hotkeys, filePath in macrosToInitialize:
             initializeMacro(macroID, hotkeys, filePath)
-
 
 #Function that initializes macros and adds them to the dictionary to prevent dual-initialization (will cause multiple windows to open per hotkey otherwise)
 def initializeMacro(macroID, hotkeys, filePath):
@@ -53,7 +50,6 @@ def initializeMacro(macroID, hotkeys, filePath):
         initializedMacroDictionary[macroID] = macroDictionaryEntry
         return True
 
-
 #Function that deinitializes macros and removes them from the dictionary so they can be initialized later.
 def deinitializeMacro(macroID):
     #Assigns the dictionary entry to a variable, then removes it from the dictionary.
@@ -66,13 +62,10 @@ def deinitializeMacro(macroID):
         keyboard.remove_hotkey(macroDict)
         return True
 
-
-
 #Function to launch a file.
 def executeMacro(filePath):
     #Uses OS library to launch a file at a given address, which in this case is the variable filePath.
     os.startfile(filePath)
-
 
 #Function to toggle a macro between active and inactive.
 def toggleMacro(macroID):
@@ -80,6 +73,10 @@ def toggleMacro(macroID):
     with sqlite3.connect("macroStorage.db") as connection:
         #Create variables that contain the isEnabled status and the hotkeys of a macro.
         macroStatus = connection.execute("SELECT isEnabled FROM macroStorage WHERE macroID = ?", [macroID]).fetchone()
+        #Check if macro exists.
+        if macroStatus == None:
+            print("Error: Macro ID does not exist.")
+            return False
         macroHotkeys = connection.execute("SELECT hotkeys FROM macroStorage WHERE macroID = ?", [macroID]).fetchone()
         #If macro is disabled, do...
         if macroStatus[0] == 0:
@@ -100,7 +97,6 @@ def toggleMacro(macroID):
         #Update the macro isEnabled value to either 0 or 1 depending on the outcome of the above select statement.    
         connection.execute("UPDATE macroStorage SET isEnabled = ? WHERE macroID = ?", (int(toggleEnableStatus), macroID))
         
-
 """
 AI Disclosure
 ChatGPT V6.0 Sol
@@ -111,7 +107,6 @@ AI was used to create a more elegant solution (AI normalizing function is only o
 def normalizeHotkeys(hotkeys):
     return "+".join(sorted(key.strip().lower() for key in hotkeys.split("+")))
 #END OF AI GENERATED CODE SEGMENT
-
 
 #Function that creates a new macro in the database.
 def createMacro(hotkeys, filePath):
@@ -124,7 +119,7 @@ def createMacro(hotkeys, filePath):
             #Creates a new macro with hotkeys and filePath being variables.
             connection.execute("INSERT INTO macroStorage (hotkeys, filePath) VALUES (?, ?)", (hotkeysNormalized, filePath))
             #Get macroID from the new macro.
-            macroID = connection.execute("SELECT macroID FROM macroStorage WHERE hotkeys = ?", (hotkeysNormalized))
+            macroID = connection.execute("SELECT macroID FROM macroStorage WHERE hotkeys = ?", (hotkeysNormalized,)).fetchone()[0]
         #InitializeMacro is called to make sure the new macro is enabled by default.
         initializeMacro(macroID, hotkeysNormalized, filePath)
         print("Macro created successfully.")
@@ -136,7 +131,6 @@ def createMacro(hotkeys, filePath):
         #Returns false to know that macro creation failed.
         return False
 
-
 """
 #Function to display all macros (WILL NOT BE NEEDED/WILL NEED MAJOR CHANGES WHEN GUI IS FINISHED)
 def readMacros():
@@ -144,7 +138,6 @@ def readMacros():
     with sqlite3.connect("config.db") as connection:
         connection.execute()
 """ 
-
 
 #Function to edit an existing macro.
 def updateMacro(macroID, hotkeys, filePath):
@@ -154,24 +147,34 @@ def updateMacro(macroID, hotkeys, filePath):
     try:
         #Open connection to DB.
         with sqlite3.connect("macroStorage.db") as connection:
+            #Check to see if a macro with the same hotkeys already exists, excluding the current macroID being modified.
+            duplicateMacro = connection.execute("SELECT macroID FROM macroStorage WHERE hotkeys = ? AND macroID != ?", (hotkeysNormalized, macroID)).fetchone()
+            if duplicateMacro != None:
+                print("Error: A macro with those hotkeys already exists. Please try again.")
+                return False
             #Creates a variable that contains the isEnabled status.
             macroStatus = connection.execute("SELECT isEnabled FROM macroStorage WHERE macroID = ?", [macroID]).fetchone()
+            if macroStatus == None:
+                print("Error: Macro ID does not exist.")
+                return False
             #If macro is enabled, do...
             if macroStatus[0] == 1:
                 #De-initialize the macro by removing the keyboard hotkey.
                 deinitializeMacro(macroID)
             #Update macro with new hotkeys and filePath once it has been deactivated above.
             connection.execute("UPDATE macroStorage SET hotkeys = ?, filePath = ? WHERE macroID = ?", (hotkeysNormalized, filePath, macroID))
-        #If check to see if macro is enabled, if so run the initializeMacro function to make sure it is re-enabled.
-        if macroStatus[0] == 1:
-            initializeMacro(macroID, hotkeysNormalized, filePath)
-        print("Macro updated successfully.")
-        return True
+            #If check to see if macro is enabled, if so run the initializeMacro function to make sure it is re-enabled.
+            if macroStatus[0] == 1:
+                if macroStatus == None: # Check to see if macroID exists, if not return false and print error message.
+                    print("Error: Macro ID does not exist.")
+                    return False
+                initializeMacro(macroID, hotkeysNormalized, filePath)
+            print("Macro updated successfully.")
+            return True
     #Except handles if a hotkey combination already exists.
     except sqlite3.IntegrityError:
         print("Error: A macro with those hotkeys already exists. Please try again.")
         return False
-
 
 def deleteMacro(macroID):
     #Deinitialize macro to remove from memory.
@@ -182,8 +185,6 @@ def deleteMacro(macroID):
         connection.execute("DELETE FROM macroStorage WHERE macroID = ?", [macroID])
     #Print a success message when complete.
     print("Macro successfully deleted!")
-
-        
 
 #Function to record keystrokes for hotkey entry rather than requiring the user to type in the keys they want to use.   
 def autoEnterHotkeys():
@@ -207,7 +208,6 @@ def autoEnterHotkeys():
         else:
             print("Error: Please select a valid option!")
     return normalizedEnteredKeys
-
 
 def tempTerminalMenu():
     #Temporary command line menu for testing purposes, will be replaced with a GUI.
@@ -241,6 +241,10 @@ def tempTerminalMenu():
                 hotkeysModify = autoEnterHotkeys()
                 print("FilePath expected format (without quotes) \"C:\\Windows\\System32\\\"")
                 filePathModify = input("Please enter your desired filepath: ")
+                #Check if the entered filepath exists.
+                if not os.path.exists(filePathModify):
+                    print("Error: Filepath does not exist. Please enter a valid filepath.")
+                    return False
                 successfulModification = updateMacro(macroIDModify, hotkeysModify, filePathModify)
                 if successfulModification == True:
                     userSelection = "0"
@@ -268,7 +272,6 @@ def tempTerminalMenu():
                 print("Error: Unknown Request")
                 userSelection = "0"
     
-
 #Main function.
 def main():
 
