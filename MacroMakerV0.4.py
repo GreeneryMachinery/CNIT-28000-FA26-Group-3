@@ -96,19 +96,6 @@ def toggleMacro(macroID):
             print("Macro successfully deactivated.")
         #Update the macro isEnabled value to either 0 or 1 depending on the outcome of the above select statement.    
         connection.execute("UPDATE macroStorage SET isEnabled = ? WHERE macroID = ?", (int(toggleEnableStatus), macroID))
-        
-"""
-AI Disclosure
-ChatGPT V6.0 Sol
-How would I modify the existing macro check to normalize key order (e.g. prevent users from inputting shift+z and z+shift)
-Goal of code is to cover every scenario of duplicate macro creation. Initial check was hand-written but didn't account for the same keys in different orders.
-AI was used to create a more elegant solution (AI normalizing function is only one line)
-"""
-def normalizeHotkeys(hotkeys):
-    return "+".join(sorted(key.strip().lower() for key in hotkeys.split("+")))
-"""
-END OF AI ASSISTED CODE SECTION
-"""
 
 #Function that creates a new macro in the database.
 def createMacro(hotkeys, filePath):
@@ -132,14 +119,6 @@ def createMacro(hotkeys, filePath):
         print("Error: A macro with those hotkeys already exists. Please try again.")
         #Returns false to know that macro creation failed.
         return False
-
-"""
-#Function to display all macros (WILL NOT BE NEEDED/WILL NEED MAJOR CHANGES WHEN GUI IS FINISHED)
-def readMacros():
-    print("\nNum. ==Hotkeys== \t| ==FilePaths==")
-    with sqlite3.connect("config.db") as connection:
-        connection.execute()
-""" 
 
 #Function to edit an existing macro.
 def updateMacro(macroID, hotkeys, filePath):
@@ -192,25 +171,34 @@ def deleteMacro(macroID):
 def autoEnterHotkeys():
     repeatEntry = True
     while repeatEntry == True:
-        #Prints the request to press hotkeys,
-        print("Please press your desired hotkeys...")
-        #Pause for 1 second so user can release any keys used in the menu.
+        #Prompts user for their desired hotkeys
+        messagebox.showinfo("Enter Hotkeys:", "Click OK, then press your desired hotkeys...")
+        #Pause so the system doesnt catch the click of OK as a hotkey
         time.sleep(1)
-        #User entered hotkeys are converted to a string using the read_hotkey function.
+        #user entered hotkeys are converted into a string and sent over to the normalizehotkey function to be put into the desired order
         userEnteredKeys = keyboard.read_hotkey(suppress=True)
         normalizedEnteredKeys = normalizeHotkeys(userEnteredKeys)
-        #Print shows the hotkeys that were read.
-        print(f"The hotkeys entered are {normalizedEnteredKeys}")
-        #CODE BELOW SOMETIMES DOES NOT RECOGNIZE THE SHIFT KEY WHEN CREATING A MACRO, MAY NEED ADVANCED TESTING TO DETERMINE ROOT CAUSE
-        isCorrect = input("Are these the keys you wish to use? y/n: ")
-        if isCorrect == "y" or isCorrect == "Y":
+        #Ask user if the hotkeys displayed are correct, otherwiser the the loop will run again
+        isCorrect = messagebox.askyesno("Confirm Hotkeys", "The hotkeys entered are " + normalizedEnteredKeys + "\n\nUse these keys?")
+        if isCorrect == True:
             repeatEntry = False
-        elif isCorrect == "n" or isCorrect == "N":
-            repeatEntry = True
-        else:
-            print("Error: Please select a valid option!")
     return normalizedEnteredKeys
 
+def normalizeHotkeys(hotkeys):
+    # List of keys that should be up front in the list.
+    modifierKeys = ["shift", "ctrl", "alt", "windows"]
+    # Lists to separate modifier keys and other keys.
+    modifiers = []
+    otherKeys = []
+    #Sort each key into the correct list, and return ordered string 
+    for key in hotkeys.split("+"):
+        key = key.strip().lower()
+        if key in modifierKeys:
+            modifiers.append(key)
+        else:
+            otherKeys.append(key)
+    # sort each list, then put them back together in the right order
+    return "+".join(sorted(modifiers) + sorted(otherKeys))
 
 """
 AI Disclosure
@@ -266,9 +254,7 @@ def runGUI():
             macroTable.delete(item)
         #Retrieve macros from the database.
         with sqlite3.connect("macroStorage.db") as connection:
-            macros = connection.execute(
-                "SELECT macroID, hotkeys, filePath, isEnabled FROM macroStorage"
-            ).fetchall()
+            macros = connection.execute("SELECT macroID, hotkeys, filePath, isEnabled FROM macroStorage").fetchall()
         #Insert each macro into the table.
         for macroID, hotkeys, filePath, isEnabled in macros:
             #Get the name from the file path.
@@ -283,10 +269,8 @@ def runGUI():
             macroTable.insert("", "end", iid=macroID, values=("▶", macroName, hotkeys, filePath, status))
 
     #Function to add a macro.
-    def addMacro():
-        hotkeys = simpledialog.askstring("Add Macro", "Enter your keyboard shortcut:")
-        if hotkeys == None:
-            return
+    def addMacroGUI():
+        hotkeys = autoEnterHotkeys()
         filePath = simpledialog.askstring("Add Macro", "Enter the program, file, folder, or URL:")
         if filePath == None:
             return
@@ -300,7 +284,7 @@ def runGUI():
             refreshMacros()
 
     #Function to edit a macro.
-    def editMacro():
+    def editMacroGUI():
         selected = macroTable.selection()
         if not selected:
             messagebox.showerror("Error", "Please select a macro first.")
@@ -314,9 +298,7 @@ def runGUI():
             refreshMacros()
             return
         #Ask for the updated information.
-        hotkeys = simpledialog.askstring("Edit Macro", "Enter the new keyboard shortcut:", initialvalue=macro[0])
-        if hotkeys == None:
-            return
+        hotkeys = autoEnterHotkeys()
         filePath = simpledialog.askstring("Edit Macro", "Enter the new program, file, folder, or URL:", initialvalue=macro[1])
         if filePath == None:
             return
@@ -359,8 +341,8 @@ def runGUI():
     macroTable.bind("<ButtonRelease-1>", toggleMacroGUI)
 
     #Create the top buttons.
-    tk.Button(buttonFrame,text="Add Macro",command=addMacro).pack(side="left", expand=True, fill="x")
-    tk.Button(buttonFrame,text="Edit Macro",command=editMacro).pack(side="left", expand=True, fill="x")
+    tk.Button(buttonFrame,text="Add Macro",command=addMacroGUI).pack(side="left", expand=True, fill="x")
+    tk.Button(buttonFrame,text="Edit Macro",command=editMacroGUI).pack(side="left", expand=True, fill="x")
     tk.Button(buttonFrame,text="Delete Macro",command=deleteMacroGUI).pack(side="left", expand=True, fill="x")
 
     #Create the bottom Settings button.
