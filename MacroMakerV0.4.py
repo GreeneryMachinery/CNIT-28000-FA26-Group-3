@@ -6,6 +6,7 @@ Current Version: 0.4
 Version Purpose: To begin integrating a TKInter GUI.
 """
 
+
 #Import required libraries.
 import keyboard
 import sqlite3
@@ -13,9 +14,18 @@ import os
 import time
 import tkinter as tk
 from tkinter import ttk, messagebox, simpledialog
+import winreg
+import sys
+import subprocess
+
+
+STARTUP_KEY = r"Software\\Microsoft\Windows\\CurrentVersion\\Run"
+APP_NAME = "MacroMaker"
+
 
 #Dictionary of currently initialized macros.
 initializedMacroDictionary = {}
+
 
 #Function to initialize the database if one hasn't been created. Does nothing if DB exists already.
 def initializeDB():
@@ -28,6 +38,7 @@ def initializeDB():
             filePath TEXT NOT NULL,
             isEnabled INTEGER NOT NULL DEFAULT 1)""")
 
+        
 #Function to initialize macros on startup of program. ***WARNING*** DO NOT USE TO INITIALIZE A MACRO OUTSIDE OF STARTUP, IT WILL CAUSE ISSUES
 def initializeMacrosOnStartup():
     #Open a connection to the database.
@@ -37,6 +48,7 @@ def initializeMacrosOnStartup():
         #For loop iterates through the tuple of tuples and initialized a macro with hotkeys being the required keystrokes and filepath being the args for the executeMacro function.
         for macroID, hotkeys, filePath in macrosToInitialize:
             initializeMacro(macroID, hotkeys, filePath)
+
 
 #Function that initializes macros and adds them to the dictionary to prevent dual-initialization (will cause multiple windows to open per hotkey otherwise)
 def initializeMacro(macroID, hotkeys, filePath):
@@ -50,6 +62,7 @@ def initializeMacro(macroID, hotkeys, filePath):
         initializedMacroDictionary[macroID] = macroDictionaryEntry
         return True
 
+
 #Function that deinitializes macros and removes them from the dictionary so they can be initialized later.
 def deinitializeMacro(macroID):
     #Assigns the dictionary entry to a variable, then removes it from the dictionary.
@@ -62,10 +75,12 @@ def deinitializeMacro(macroID):
         keyboard.remove_hotkey(macroDict)
         return True
 
+
 #Function to launch a file.
 def executeMacro(filePath):
     #Uses OS library to launch a file at a given address, which in this case is the variable filePath.
     os.startfile(filePath)
+
 
 #Function to toggle a macro between active and inactive.
 def toggleMacro(macroID):
@@ -97,6 +112,7 @@ def toggleMacro(macroID):
         #Update the macro isEnabled value to either 0 or 1 depending on the outcome of the above select statement.    
         connection.execute("UPDATE macroStorage SET isEnabled = ? WHERE macroID = ?", (int(toggleEnableStatus), macroID))
 
+
 #Function that creates a new macro in the database.
 def createMacro(hotkeys, filePath):
     #Ensure hotkeys are normalized before inserting into database.
@@ -119,6 +135,7 @@ def createMacro(hotkeys, filePath):
         print("Error: A macro with those hotkeys already exists. Please try again.")
         #Returns false to know that macro creation failed.
         return False
+
 
 #Function to edit an existing macro.
 def updateMacro(macroID, hotkeys, filePath):
@@ -157,6 +174,7 @@ def updateMacro(macroID, hotkeys, filePath):
         print("Error: A macro with those hotkeys already exists. Please try again.")
         return False
 
+
 def deleteMacro(macroID):
     #Deinitialize macro to remove from memory.
     deinitializeMacro(macroID)
@@ -166,6 +184,7 @@ def deleteMacro(macroID):
         connection.execute("DELETE FROM macroStorage WHERE macroID = ?", [macroID])
     #Print a success message when complete.
     print("Macro successfully deleted!")
+
 
 #Function to record keystrokes for hotkey entry rather than requiring the user to type in the keys they want to use.   
 def autoEnterHotkeys():
@@ -184,6 +203,7 @@ def autoEnterHotkeys():
             repeatEntry = False
     return normalizedEnteredKeys
 
+
 def normalizeHotkeys(hotkeys):
     # List of keys that should be up front in the list.
     modifierKeys = ["shift", "ctrl", "alt", "windows"]
@@ -199,6 +219,55 @@ def normalizeHotkeys(hotkeys):
             otherKeys.append(key)
     # sort each list, then put them back together in the right order
     return "+".join(sorted(modifiers) + sorted(otherKeys))
+
+
+"""
+AI Disclosure
+ChatGPT V6.0 Sol
+"Help me develop a solution that allows the program to launch on startup without requiring the user to manually add files to the startup directory"
+AI was used to aid in the development of a more elegant solution to allowing for Macro Maker to run on startup.
+"""
+def toggleLaunchOnStartup(isStartupEnabled):
+    if isStartupEnabled == True:
+        #Code that checks for both a standard .py file or an .exe file (final release plan to package into an .exe)
+        if getattr(sys, "frozen", False):
+            command = subprocess.list2cmdline([sys.executable])
+        else:
+            scriptPath = os.path.abspath(sys.argv[0])
+            pythonPath = sys.executable
+
+            #Use pythonw.exe to avoid a console window.
+            if os.path.basename(pythonPath).lower() == "python.exe":pythonPath = os.path.join(os.path.dirname(pythonPath),"pythonw.exe")
+
+            command = subprocess.list2cmdline([pythonPath, scriptPath])
+
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER,STARTUP_KEY,0,winreg.KEY_SET_VALUE) as key:
+            winreg.SetValueEx(key, APP_NAME, 0, winreg.REG_SZ, command)
+
+    else:
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER,STARTUP_KEY,0,winreg.KEY_SET_VALUE) as key:
+            try:
+                winreg.DeleteValue(key, APP_NAME)
+            except FileNotFoundError:
+                pass
+
+
+def programStartupStatus():
+    #Try-except to catch an error if the file isn't found.
+    try:
+        #Opens the windows registry to search and see if MacroMaker is currently set as a startup program.
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, STARTUP_KEY) as key:
+            #Search registry for an entry for MacroMaker.
+            winreg.QueryValueEx(key, APP_NAME)
+            #Returns true if the file referencing the APP_NAME MacroMaker is found indicating it is enabled at startup.
+            return True
+    #If the registry entry isn't found, the function returns False indicating that the program is not enabled at startup.
+    except FileNotFoundError:
+        return False
+"""
+End AI Assist Segment
+"""
+
 
 """
 AI Disclosure
@@ -333,9 +402,34 @@ def runGUI():
             toggleMacro(macroID)
             refreshMacros()
 
+    
     #Function for the Settings button.
     def settings():
-        messagebox.showinfo("Settings", "Macro Maker must remain running for global hotkeys to work.\n\n", "Database: " + os.path.abspath("macroStorage.db"))
+        #messagebox.showinfo("Settings", "Macro Maker must remain running for global hotkeys to work.\n\nDatabase: " + os.path.abspath("macroStorage.db"))
+        #Create settings window.
+        settingsWindow = tk.Toplevel()
+        settingsWindow.title("Settings")
+        settingsWindow.geometry("275x100")
+        settingsWindow.minsize(200, 100)
+
+        #Create the settings window title.
+        settingsTitle = tk.Label(settingsWindow,text="Settings",font=("Arial", 20, "bold"))
+        settingsTitle.pack(fill="x")
+       
+        #Create the settings button frame.
+        settingsButtonFrame = tk.Frame(settingsWindow)
+        settingsButtonFrame.pack(fill="x")
+
+        #Create text of the name of the first setting, launch on startup.
+        toggleStartupText = tk.Label(settingsWindow,text="Launch on System Startup: ")
+        toggleStartupText.pack(side="left",padx=(25,0),expand=False,fill="x")
+
+        #Create a checkbox for the first setting, launch on startup.
+        isStartupEnabled = tk.BooleanVar(value=programStartupStatus())
+        toggleStartupCheckbox = tk.Checkbutton(settingsWindow,variable=isStartupEnabled,command=lambda: toggleLaunchOnStartup(isStartupEnabled.get()))
+        toggleStartupCheckbox.pack(side="left",padx=(25,25),expand=False,fill="x")
+
+
 
     #Connect the status column to the toggle function.
     macroTable.bind("<ButtonRelease-1>", toggleMacroGUI)
@@ -358,12 +452,14 @@ def runGUI():
 END OF AI ASSISTED CODE SECTION
 """
 
+
 #Main function.
 def main():
 
     initializeDB()
     initializeMacrosOnStartup()
     runGUI()
+
 
 #Call main.
 main()
