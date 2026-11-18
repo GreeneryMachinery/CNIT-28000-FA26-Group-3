@@ -229,6 +229,10 @@ def normalizeHotkeys(hotkeys):
     return "+".join(sorted(modifiers) + sorted(otherKeys))
 
 
+def cleanFilePath(filePath):
+    #Remove any quotation marks and whitespace from the beginning and end of the file path.
+    return filePath.strip().strip('"')
+
 """
 AI Disclosure
 ChatGPT V6.0 Sol
@@ -354,6 +358,8 @@ def runGUI():
         filePath = simpledialog.askstring("Add Macro", "Enter the program, file, folder, or URL:")
         if filePath == None:
             return
+        #Remove quotation marks from the file path.
+        filePath = cleanFilePath(filePath)
         #Check that the target exists or is a URL.
         if not (os.path.exists(filePath) or filePath.startswith(("http://", "https://"))):
             messagebox.showerror("Error", "Invalid file path or URL.")
@@ -385,6 +391,8 @@ def runGUI():
         filePath = simpledialog.askstring("Edit Macro", "Enter the new program, file, folder, or URL:", initialvalue=macro[1])
         if filePath == None:
             return
+        #Remove quotation marks from the file path.
+        filePath = cleanFilePath(filePath)
         #Check that the target exists or is a URL.
         if not (os.path.exists(filePath) or filePath.startswith(("http://", "https://"))):
             messagebox.showerror("Error", "Invalid file path or URL.")
