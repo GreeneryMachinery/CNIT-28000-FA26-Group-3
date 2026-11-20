@@ -271,10 +271,9 @@ def programStartupStatus():
     startupFolder = os.path.expanduser(r"~\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Startup")
     programLauncher = "MacroMaker.bat"
 
-    for files in os.walk(startupFolder):
-        for file in files:
-            if file.lower() == programLauncher.lower():
-                return True
+    launcherExists = os.path.isfile(os.path.join(startupFolder, programLauncher))
+    if launcherExists == True:
+        return True
     return False
 
 """
