@@ -8,12 +8,23 @@ Version Purpose: To begin integrating a TKInter GUI.
 
 
 #Import required libraries.
+#Used to manage macro execution / process keyboard input.
 import keyboard
+
+#Used to store macros in a database.
 import sqlite3
+
+#Used to open a filepath when a macro is executed.
 import os
+
+#Used to avoid detecting unwanted inputs.
 import time
+
+#Used to create GUI.
 import tkinter as tk
 from tkinter import ttk, messagebox, simpledialog
+
+#Used for launching on startup.
 import winreg
 import sys
 import subprocess
@@ -402,6 +413,11 @@ def runGUI():
             toggleMacro(macroID)
             refreshMacros()
 
+    #Function to minimize window when clicking the X button.
+    def minimizeOnX():
+        #Iconify is the tkinter function to minimize a program to the taskbar.
+        window.iconify()
+
     
     #Function for the Settings button.
     def settings():
@@ -443,6 +459,9 @@ def runGUI():
     bottomFrame = tk.Frame(window)
     bottomFrame.pack(fill="x")
     tk.Button(bottomFrame,text="Settings",command=settings).pack(side="right")
+
+    #Instead of closing upon clicking X, minimize to taskbar instead (requires users to right-click icon and close if they wish to exit program).
+    window.protocol("WM_DELETE_WINDOW", minimizeOnX)
 
     #Load existing macros.
     refreshMacros()
