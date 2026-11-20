@@ -259,7 +259,11 @@ def toggleLaunchOnStartup(isStartupEnabled):
             macroMakerInstallLocation = os.path.abspath(__file__)
             macroMakerInstallDirectory = os.path.dirname(macroMakerInstallLocation)
             pythonExecutable = sys.executable
-            startupBatchFile = (f"@echo off\ncd /d \"{macroMakerInstallLocation}\"\n\"{pythonExecutable}\" \"{macroMakerInstallDirectory}\"")
+            startupBatchFile = (
+                f'@echo off\n'
+                f'cd /d "{macroMakerInstallDirectory}"\n'
+                f'"{pythonExecutable}" "{macroMakerInstallLocation}"\n'
+            )
             with open(os.path.join(startupFolder, programLauncher), "w") as file:
                 file.write(startupBatchFile)
     else:
