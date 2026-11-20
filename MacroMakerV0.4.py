@@ -247,46 +247,36 @@ def cleanFilePath(filePath):
 """
 AI Disclosure
 ChatGPT V6.0 Sol
-"Help me develop a solution that allows the program to launch on startup without requiring the user to manually add files to the startup directory"
-AI was used to aid in the development of a more elegant solution to allowing for Macro Maker to run on startup.
+Requested assistance in converting registry-based launching to a .bat file in startup directory.
+AI was used to aid in the development of a more elegant solution to allowing for Macro Maker to run on startup focusing on 
 """
 def toggleLaunchOnStartup(isStartupEnabled):
+    startupFolder = os.path.expanduser(r"~\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Startup")
+    programLauncher = "MacroMaker.bat"
     if isStartupEnabled == True:
-        #Code that checks for both a standard .py file or an .exe file (final release plan to package into an .exe)
-        if getattr(sys, "frozen", False):
-            command = subprocess.list2cmdline([sys.executable])
-        else:
-            scriptPath = os.path.abspath(sys.argv[0])
-            pythonPath = sys.executable
-
-            #Use pythonw.exe to avoid a console window.
-            if os.path.basename(pythonPath).lower() == "python.exe":pythonPath = os.path.join(os.path.dirname(pythonPath),"pythonw.exe")
-
-            command = subprocess.list2cmdline([pythonPath, scriptPath])
-
-        with winreg.OpenKey(winreg.HKEY_CURRENT_USER,STARTUP_KEY,0,winreg.KEY_SET_VALUE) as key:
-            winreg.SetValueEx(key, APP_NAME, 0, winreg.REG_SZ, command)
-
+        alreadyExists = programStartupStatus()
+        if alreadyExists == False:
+            macroMakerInstallLocation = os.path.abspath(__file__)
+            macroMakerInstallDirectory = os.path.dirname(macroMakerInstallLocation)
+            pythonExecutable = sys.executable
+            startupBatchFile = (f"@echo off\ncd /d \"{macroMakerInstallLocation}\"\n\"{pythonExecutable}\" \"{macroMakerInstallDirectory}\"")
+            with open(os.path.join(startupFolder, programLauncher), "w") as file:
+                file.write(startupBatchFile)
     else:
-        with winreg.OpenKey(winreg.HKEY_CURRENT_USER,STARTUP_KEY,0,winreg.KEY_SET_VALUE) as key:
-            try:
-                winreg.DeleteValue(key, APP_NAME)
-            except FileNotFoundError:
-                pass
+        os.remove(os.path.join(startupFolder, programLauncher))
 
+        
 
 def programStartupStatus():
-    #Try-except to catch an error if the file isn't found.
-    try:
-        #Opens the windows registry to search and see if MacroMaker is currently set as a startup program.
-        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, STARTUP_KEY) as key:
-            #Search registry for an entry for MacroMaker.
-            winreg.QueryValueEx(key, APP_NAME)
-            #Returns true if the file referencing the APP_NAME MacroMaker is found indicating it is enabled at startup.
-            return True
-    #If the registry entry isn't found, the function returns False indicating that the program is not enabled at startup.
-    except FileNotFoundError:
-        return False
+    startupFolder = os.path.expanduser(r"~\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Startup")
+    programLauncher = "MacroMaker.bat"
+
+    for files in os.walk(startupFolder):
+        for file in files:
+            if file.lower() == programLauncher.lower():
+                return True
+    return False
+
 """
 End AI Assist Segment
 """
