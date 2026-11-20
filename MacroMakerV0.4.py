@@ -186,6 +186,7 @@ def updateMacro(macroID, hotkeys, filePath):
         return False
 
 
+#Function to delete an existing macro.
 def deleteMacro(macroID):
     #Deinitialize macro to remove from memory.
     deinitializeMacro(macroID)
@@ -202,19 +203,26 @@ def autoEnterHotkeys():
     repeatEntry = True
     while repeatEntry == True:
         #Prompts user for their desired hotkeys
-        messagebox.showinfo("Enter Hotkeys:", "Click OK, then press your desired hotkeys...")
+        continueEntry = messagebox.askokcancel("Enter Hotkeys:", "Click OK, then press your desired hotkeys...")
+        #Check if the user closed the window - cancel the operation if so.
+        if continueEntry == False:
+            return None
         #Pause so the system doesnt catch the click of OK as a hotkey
         time.sleep(1)
         #user entered hotkeys are converted into a string and sent over to the normalizehotkey function to be put into the desired order
         userEnteredKeys = keyboard.read_hotkey(suppress=True)
         normalizedEnteredKeys = normalizeHotkeys(userEnteredKeys)
         #Ask user if the hotkeys displayed are correct, otherwiser the the loop will run again
-        isCorrect = messagebox.askyesno("Confirm Hotkeys", "The hotkeys entered are " + normalizedEnteredKeys + "\n\nUse these keys?")
+        isCorrect = messagebox.askyesnocancel("Confirm Hotkeys", "The hotkeys entered are " + normalizedEnteredKeys + "\n\nUse these keys?")
+        #Check if the user closed the window.
+        if isCorrect == None:
+            return None
         if isCorrect == True:
             repeatEntry = False
     return normalizedEnteredKeys
 
 
+#Function to normalize hotkeys so that they are in a consistent order for storage and comparison.
 def normalizeHotkeys(hotkeys):
     # List of keys that should be up front in the list.
     modifierKeys = ["shift", "ctrl", "alt", "windows"]
@@ -231,6 +239,10 @@ def normalizeHotkeys(hotkeys):
     # sort each list, then put them back together in the right order
     return "+".join(sorted(modifiers) + sorted(otherKeys))
 
+
+def cleanFilePath(filePath):
+    #Remove any quotation marks and whitespace from the beginning and end of the file path.
+    return filePath.strip().strip('"')
 
 """
 AI Disclosure
@@ -351,9 +363,14 @@ def runGUI():
     #Function to add a macro.
     def addMacroGUI():
         hotkeys = autoEnterHotkeys()
+        #Check if the user canceled the hotkey entry.
+        if hotkeys == None:
+            return
         filePath = simpledialog.askstring("Add Macro", "Enter the program, file, folder, or URL:")
         if filePath == None:
             return
+        #Remove quotation marks from the file path.
+        filePath = cleanFilePath(filePath)
         #Check that the target exists or is a URL.
         if not (os.path.exists(filePath) or filePath.startswith(("http://", "https://"))):
             messagebox.showerror("Error", "Invalid file path or URL.")
@@ -379,9 +396,14 @@ def runGUI():
             return
         #Ask for the updated information.
         hotkeys = autoEnterHotkeys()
+        #Check if the user canceled the hotkey entry.
+        if hotkeys == None:
+            return
         filePath = simpledialog.askstring("Edit Macro", "Enter the new program, file, folder, or URL:", initialvalue=macro[1])
         if filePath == None:
             return
+        #Remove quotation marks from the file path.
+        filePath = cleanFilePath(filePath)
         #Check that the target exists or is a URL.
         if not (os.path.exists(filePath) or filePath.startswith(("http://", "https://"))):
             messagebox.showerror("Error", "Invalid file path or URL.")
