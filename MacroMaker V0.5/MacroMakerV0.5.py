@@ -46,6 +46,7 @@ def initializeDB():
         #Create the database with macroID, hotkeys, filePath, isEnabled as fields.
         connection.execute("""CREATE TABLE IF NOT EXISTS macroStorage (
             macroID INTEGER PRIMARY KEY AUTOINCREMENT,
+            macroName TEXT NOT NULL,
             hotkeys TEXT NOT NULL UNIQUE,
             filePath TEXT NOT NULL,
             isEnabled INTEGER NOT NULL DEFAULT 1)""")
@@ -126,7 +127,7 @@ def toggleMacro(macroID):
 
 
 #Function that creates a new macro in the database.
-def createMacro(hotkeys, filePath):
+def createMacro(macroName, hotkeys, filePath):
     #Ensure hotkeys are normalized before inserting into database.
     hotkeysNormalized = normalizeHotkeys(hotkeys)
     #Try-except to handle duplicate hotkeys.
@@ -134,7 +135,7 @@ def createMacro(hotkeys, filePath):
         #Create connection to DB.
         with sqlite3.connect(DB_DIRECTORY) as connection:
             #Creates a new macro with hotkeys and filePath being variables.
-            connection.execute("INSERT INTO macroStorage (hotkeys, filePath) VALUES (?, ?)", (hotkeysNormalized, filePath))
+            connection.execute("INSERT INTO macroStorage (macroName, hotkeys, filePath) VALUES (?, ?, ?)", (macroName, hotkeysNormalized, filePath))
             #Get macroID from the new macro.
             macroID = connection.execute("SELECT macroID FROM macroStorage WHERE hotkeys = ?", (hotkeysNormalized,)).fetchone()[0]
         #InitializeMacro is called to make sure the new macro is enabled by default.
@@ -150,7 +151,7 @@ def createMacro(hotkeys, filePath):
 
 
 #Function to edit an existing macro.
-def updateMacro(macroID, hotkeys, filePath):
+def updateMacro(macroName, macroID, hotkeys, filePath):
     #Normalize hotkeys prior to use.
     hotkeysNormalized = normalizeHotkeys(hotkeys)
     #Try-except to handle duplicate hotkeys.
@@ -172,7 +173,7 @@ def updateMacro(macroID, hotkeys, filePath):
                 #De-initialize the macro by removing the keyboard hotkey.
                 deinitializeMacro(macroID)
             #Update macro with new hotkeys and filePath once it has been deactivated above.
-            connection.execute("UPDATE macroStorage SET hotkeys = ?, filePath = ? WHERE macroID = ?", (hotkeysNormalized, filePath, macroID))
+            connection.execute("UPDATE macroStorage SET macroName = ?, hotkeys = ?, filePath = ? WHERE macroID = ?", (macroName, hotkeysNormalized, filePath, macroID))
             #If check to see if macro is enabled, if so run the initializeMacro function to make sure it is re-enabled.
             if macroStatus[0] == 1:
                 if macroStatus == None: # Check to see if macroID exists, if not return false and print error message.
@@ -240,10 +241,23 @@ def normalizeHotkeys(hotkeys):
     # sort each list, then put them back together in the right order
     return "+".join(sorted(modifiers) + sorted(otherKeys))
 
-
+# Function to clean file paths by removing quotation marks and whitespace from the beginning and end of the file path.
 def cleanFilePath(filePath):
     #Remove any quotation marks and whitespace from the beginning and end of the file path.
     return filePath.strip().strip('"')
+
+#Function to prompt the user for a macro name.
+def makeMacroName(initialName=""):
+    while True:
+        #Prompt user for macro name.
+        macroName = simpledialog.askstring("Macro Name", "Enter a name for the macro:", initialvalue=initialName)
+        #Check if the user canceled the entry.
+        if macroName == None:
+            return None
+        macroName = macroName.strip()
+        if macroName != "":
+            return macroName
+        messagebox.showerror("Error", "Macro name cannot be empty.")
 
 """
 AI Disclosure
@@ -334,14 +348,9 @@ def runGUI():
             macroTable.delete(item)
         #Retrieve macros from the database.
         with sqlite3.connect(DB_DIRECTORY) as connection:
-            macros = connection.execute("SELECT macroID, hotkeys, filePath, isEnabled FROM macroStorage").fetchall()
+            macros = connection.execute("SELECT macroID, macroName, hotkeys, filePath, isEnabled FROM macroStorage").fetchall()
         #Insert each macro into the table.
-        for macroID, hotkeys, filePath, isEnabled in macros:
-            #Get the name from the file path.
-            macroName = os.path.basename(filePath.rstrip("\\/"))
-            if macroName == "":
-                macroName = filePath
-            #Display a checked or unchecked status.
+        for macroID, macroName, hotkeys, filePath, isEnabled in macros:
             if isEnabled == 1:
                 status = "☑"
             else:
@@ -350,11 +359,16 @@ def runGUI():
 
     #Function to add a macro.
     def addMacroGUI():
+        macroName = makeMacroName()
+        #Check if the user canceled the macro name entry.
+        if macroName == None:
+            return
         hotkeys = autoEnterHotkeys()
         #Check if the user canceled the hotkey entry.
         if hotkeys == None:
             return
         filePath = simpledialog.askstring("Add Macro", "Enter the program, file, folder, or URL:")
+        #Check if the user canceled the file path entry.
         if filePath == None:
             return
         #Remove quotation marks from the file path.
@@ -363,8 +377,8 @@ def runGUI():
         if not (os.path.exists(filePath) or filePath.startswith(("http://", "https://"))):
             messagebox.showerror("Error", "Invalid file path or URL.")
             return
-        #Create the macro using the existing function.
-        successful = createMacro(hotkeys, filePath)
+        #Create the macro using the existing function.    
+        successful = createMacro(macroName, hotkeys, filePath)
         if successful == True:
             refreshMacros()
 
@@ -377,17 +391,20 @@ def runGUI():
         macroID = int(selected[0])
         #Get the current macro information.
         with sqlite3.connect(DB_DIRECTORY) as connection:
-            macro = connection.execute("SELECT hotkeys, filePath FROM macroStorage WHERE macroID = ?", (macroID,)).fetchone()
+            macro = connection.execute("SELECT macroName, hotkeys, filePath FROM macroStorage WHERE macroID = ?", (macroID,)).fetchone()
         if macro == None:
             messagebox.showerror("Error", "Macro could not be found.")
             refreshMacros()
+            return
+        macroName = makeMacroName(macro[0])
+        if macroName == None:
             return
         #Ask for the updated information.
         hotkeys = autoEnterHotkeys()
         #Check if the user canceled the hotkey entry.
         if hotkeys == None:
             return
-        filePath = simpledialog.askstring("Edit Macro", "Enter the new program, file, folder, or URL:", initialvalue=macro[1])
+        filePath = simpledialog.askstring("Edit Macro", "Enter the new program, file, folder, or URL:", initialvalue=macro[2])
         if filePath == None:
             return
         #Remove quotation marks from the file path.
@@ -397,7 +414,7 @@ def runGUI():
             messagebox.showerror("Error", "Invalid file path or URL.")
             return
         #Update the macro using the existing function.
-        successful = updateMacro(macroID, hotkeys, filePath)
+        successful = updateMacro(macroName, macroID, hotkeys, filePath)
         if successful == True:
             refreshMacros()
 
@@ -431,8 +448,6 @@ def runGUI():
         if closeConfirm == True:
             window.destroy()
 
-        
-
     
     #Function for the Settings button.
     def settings():
@@ -459,7 +474,6 @@ def runGUI():
         isStartupEnabled = tk.BooleanVar(settingsWindow,value=programStartupStatus())
         toggleStartupCheckbox = tk.Checkbutton(settingsWindow,variable=isStartupEnabled,command=lambda: toggleLaunchOnStartup(isStartupEnabled.get()))
         toggleStartupCheckbox.pack(side="left",padx=(25,25),expand=False,fill="x")
-
 
 
     #Connect the status column to the toggle function.
