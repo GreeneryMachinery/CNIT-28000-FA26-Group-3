@@ -247,39 +247,35 @@ def cleanFilePath(filePath):
 """
 AI Disclosure
 ChatGPT V6.0 Sol
-Requested assistance in converting registry-based launching to a .bat file in startup directory.
-AI was used to aid in the development of a more elegant solution to allowing for Macro Maker to run on startup focusing on 
+"Help me develop a solution that allows the program to launch on startup without requiring the user to manually add files to the startup directory"
+AI was used to aid in the development of a more elegant solution to allowing for Macro Maker to run on startup.
 """
 def toggleLaunchOnStartup(isStartupEnabled):
-    startupFolder = os.path.expanduser(r"~\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Startup")
-    programLauncher = "MacroMaker.bat"
-    if isStartupEnabled == True:
-        alreadyExists = programStartupStatus()
-        if alreadyExists == False:
-            macroMakerInstallLocation = os.path.abspath(__file__)
-            macroMakerInstallDirectory = os.path.dirname(macroMakerInstallLocation)
-            pythonExecutable = sys.executable
-            startupBatchFile = (
-                f'@echo off\n'
-                f'cd /d "{macroMakerInstallDirectory}"\n'
-                f'"{pythonExecutable}" "{macroMakerInstallLocation}"\n'
-            )
-            with open(os.path.join(startupFolder, programLauncher), "w") as file:
-                file.write(startupBatchFile)
-    else:
-        os.remove(os.path.join(startupFolder, programLauncher))
+    #Create a key in the registry.
+    with winreg.CreateKey(winreg.HKEY_CURRENT_USER, STARTUP_KEY) as key:
+        #If-else to check if the program is set to launch on startup.
+        if isStartupEnabled == True:
+            #If it is supposed to launch on startup, exeFilePath uses the os.path.abspath to get the absolute path of the executable file (from sys.executable)
+            exeFilePath = os.path.abspath(sys.executable)
+            #Configures the registry to launch the program on startup.
+            winreg.setValue(key, APP_NAME, 0, winreg.REG_SZ, f'"{exeFilePath}"')
+        else:
+            #Else it deletes the value from registry preventing launch on startup.
+            winreg.DeleteValue(key, APP_NAME)
 
-        
 
-def programStartupStatus():
-    startupFolder = os.path.expanduser(r"~\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Startup")
-    programLauncher = "MacroMaker.bat"
-
-    launcherExists = os.path.isfile(os.path.join(startupFolder, programLauncher))
-    if launcherExists == True:
-        return True
-    return False
-
+def programStartupStatus():#
+    #Try-except to catch an error if the file isn't found.
+    try:
+        #Opens the windows registry to search and see if MacroMaker is currently set as a startup program.
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, STARTUP_KEY) as key:
+            #Search registry for an entry for MacroMaker.
+            winreg.QueryValueEx(key, APP_NAME)
+            #Returns true if the file referencing the APP_NAME MacroMaker is found indicating it is enabled at startup.
+            return True
+    #If the registry entry isn't found, the function returns False indicating that the program is not enabled at startup.
+    except FileNotFoundError:
+        return False
 """
 End AI Assist Segment
 """
@@ -428,10 +424,15 @@ def runGUI():
             toggleMacro(macroID)
             refreshMacros()
 
-    #Function to minimize window when clicking the X button.
-    def minimizeOnX():
-        #Iconify is the tkinter function to minimize a program to the taskbar.
-        window.iconify()
+    #Function to confirm closing window when clicking the X button.
+    def closeGUI():
+        #Make a message box describing behavior difference between minimizing and exiting.
+        closeConfirm = messagebox.askyesno("Closing MacroMaker means your macros will stop working.\nIf you want macros to continue to work, please minimize instead.\n\nAre you sure you want to exit the program?")
+        #Closes window if user clicks yes.
+        if closeConfirm == True:
+            window.destroy()
+
+        
 
     
     #Function for the Settings button.
@@ -475,8 +476,8 @@ def runGUI():
     bottomFrame.pack(fill="x")
     tk.Button(bottomFrame,text="Settings",command=settings).pack(side="right")
 
-    #Instead of closing upon clicking X, minimize to taskbar instead (requires users to right-click icon and close if they wish to exit program).
-    window.protocol("WM_DELETE_WINDOW", minimizeOnX)
+    #Instead of closing upon clicking X, ask user to confirm.
+    window.protocol("WM_DELETE_WINDOW", closeGUI)
 
     #Load existing macros.
     refreshMacros()
