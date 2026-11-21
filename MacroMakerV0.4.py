@@ -427,7 +427,7 @@ def runGUI():
     #Function to confirm closing window when clicking the X button.
     def closeGUI():
         #Make a message box describing behavior difference between minimizing and exiting.
-        closeConfirm = messagebox.askyesno("Closing MacroMaker means your macros will stop working.\nIf you want macros to continue to work, please minimize instead.\n\nAre you sure you want to exit the program?")
+        closeConfirm = messagebox.askyesno("Close MacroMaker?", "Closing MacroMaker means your macros will stop working.\nIf you want macros to continue to work, please minimize instead.\n\nAre you sure you want to exit the program?")
         #Closes window if user clicks yes.
         if closeConfirm == True:
             window.destroy()
