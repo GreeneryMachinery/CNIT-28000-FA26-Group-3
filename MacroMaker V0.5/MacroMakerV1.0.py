@@ -2,8 +2,8 @@
 Authors: Andrew Connolly and Trey Greene
 Program Name: MacroMakerV1.py
 Date Initialized: Nov 21, 2026
-Current Version: 0.5
-Version Purpose: First attempts at bundling into an EXE file for final release.
+Current Version: 1.0
+Version Purpose: First official release at MVP status. All functionality requirements have been implemented. Bugs have been checked for and fixed. Product is ready for first release.
 """
 
 
@@ -212,7 +212,7 @@ def autoEnterHotkeys():
         #Pause so the system doesnt catch the click of OK as a hotkey
         time.sleep(1)
         #user entered hotkeys are converted into a string and sent over to the normalizehotkey function to be put into the desired order
-        userEnteredKeys = keyboard.read_hotkey(suppress=True)
+        userEnteredKeys = keyboard.read_hotkey(suppress=False)
         normalizedEnteredKeys = normalizeHotkeys(userEnteredKeys)
         #Ask user if the hotkeys displayed are correct, otherwiser the the loop will run again
         isCorrect = messagebox.askyesnocancel("Confirm Hotkeys", "The hotkeys entered are " + normalizedEnteredKeys + "\n\nUse these keys?")
