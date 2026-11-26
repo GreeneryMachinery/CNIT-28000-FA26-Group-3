@@ -46,3 +46,6 @@ Optional Installation Steps:
 
 **Q:** I want multiple different profiles, does MacroMaker support this?
 **A:** At this time, MacroMaker only supports one profile. However, a workaround exists if you have two db files and name the active one macroStorage.db and name the inactive one something else (this is not officially supported, and MacroMaker should be closed during the renaming process to avoid any issues)
+
+**Q:** My macros are clearing every time I restart my PC.
+**A:** This behavior has been observed if multiple versions of Macro Maker are installed at the same time. Please disable 'Launch on Startup' and delete the .exe file for each version, then re-install the latest release following the installation instructions. If behavior persists, please open an issue with steps to replicate.
